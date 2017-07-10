@@ -12,6 +12,7 @@ void LCD_Ini();
 void LCD_WaitBF();
 void LCD_Cursor(unsigned char , unsigned char );
 void LCD_Write(unsigned char []);
+void LCD_WriteNum(unsigned long num);
 void LCD_Clear();
 
 

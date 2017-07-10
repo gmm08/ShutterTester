@@ -2,7 +2,7 @@
 
 #include <xc.h>
 #include "lcd.h"
-
+#include <stdlib.h>
 
 #define _XTAL_FREQ 20000000  
 
@@ -105,10 +105,18 @@ void LCD_Cursor(unsigned char x, unsigned char y) {
 void LCD_Write(unsigned char str[]){
     
     char i = 0;
-    while(str[i]!='\0'){
+    while(str[i]!=NULL){
         LCD_SendData(str[i]);
        i++; 
     }
+    
+}
+
+void LCD_WriteNum(unsigned long num){
+    
+    unsigned char buffer[10];
+    ultoa(num,buffer,10);
+    LCD_Write(buffer);
     
 }
 

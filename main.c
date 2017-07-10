@@ -13,16 +13,26 @@
 #include "lcd.h"
 #include "pic16f628a.h"
 
-
+#define _XTAL_FREQ 20000000  
+#define BT PORTBbits.RB1
+#define T1FC 1310700    //Factor de conversió T1 a 1:1 es 1310700 ns per cada overflow
 
 unsigned int temps[3], of[3];
 char cnt;
+bit ol;
 
 void main(void) {
+
+    unsigned long durada[2]; //En ns
+
 
     CMCON = 0x07;
 
     VRCON = 0x00;
+    
+    TXSTA = 0x00;
+    
+    RCSTA = 0x00;
 
     TRISA = 0x00;
 
@@ -31,6 +41,14 @@ void main(void) {
     T1CON = 0x00;
 
     CCP1CON = 0x04;
+    
+    OPTION_REG = 0xc0;
+    
+    INTCON = 0x20;
+    PIE1 = 0x05;
+    
+   // PEIE = 1;
+   // GIE = 1;
 
     LCD_Ini();
 
@@ -42,11 +60,53 @@ void main(void) {
 
 
 
-    LCD_Write("Hello World!");
+    LCD_Write("Press Start");
 
+    
     while (1) {
 
 
+        if (!BT) {
+
+            CCP1IF = 0;
+            CCP1IE = 1;
+
+            TMR1IF = 0;
+            TMR1IE = 1;
+            
+            
+
+            cnt = 0;
+
+            LCD_Clear();
+            LCD_Cursor(0, 0);
+            LCD_Write("Ready");
+
+            PEIE = 1;
+             GIE = 1;
+            
+            while (cnt < 4) {
+            }
+
+             PEIE = 0;
+             GIE = 0;
+             
+            if (ol) {
+
+                durada[0] = T1FC * of[1] + temps[1];
+                durada[1] = T1FC * (of[2] - of[0])+(temps[2] - temps[0]);
+
+            } else {
+
+                durada[0] = T1FC * of[0] + temps[0];
+                durada[1] = T1FC * (of[2] - of[1])+(temps[2] - temps[1]);
+
+            }
+
+            LCD_Cursor(0, 0);
+            LCD_WriteNum(durada[0]);
+
+        }
 
 
     }
@@ -57,7 +117,7 @@ void main(void) {
 void interrupt isr(void) {
 
     if (CCP1IE && CCP1IF) {
-        
+
         CCP1IE = 0;
 
         if (cnt == 0) {
@@ -72,29 +132,38 @@ void interrupt isr(void) {
         } else if (cnt == 2) {
             temps[1] = CCPR1;
             CCP1CONbits.CCP1M = 0b0100;
-            
+
         } else if (cnt == 3) {
             temps[2] = CCPR1;
-            
+
         }
 
         cnt++;
-        
+
         CCP1IF = 0;
         CCP1IE = 1;
         return;
     }
 
-    if(TMR1IE && TMR1IF){
-        
-       if(cnt != 0) of[cnt-1]++; 
-                
-       TMR1IF=0;
-       return;
-        
+    if (TMR1IE && TMR1IF) {
+
+        if (cnt != 0) of[cnt - 1]++;
+
+        TMR1IF = 0;
+        return;
+
+    }
+
+    if (INTE && INTF) {
+
+        ol = 1;
+
+        INTF = 0;
+        return;
+
     }
 
 
-
 }
+
 
