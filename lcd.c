@@ -42,7 +42,7 @@ void LCD_SendData(unsigned char num) {
 void LCD_EN() {
 
     EN = 1;
-    __delay_ms(5);
+    __delay_ms(2);
     EN = 0;
 
 
@@ -115,7 +115,7 @@ void LCD_Write(unsigned char str[]){
 void LCD_WriteNum(unsigned long num){
     
     unsigned char buffer[10];
-    ultoa(num,buffer,10);
+    ultoa(buffer,num,10);
     LCD_Write(buffer);
     
 }

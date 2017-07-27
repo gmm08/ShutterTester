@@ -17,9 +17,9 @@
 #define BT PORTBbits.RB1
 #define T1FC 1310700    //Factor de conversió T1 a 1:1 es 1310700 ns per cada overflow
 
-unsigned int temps[3], of[3];
-char cnt;
-bit ol;
+volatile unsigned int temps[3], of[3];
+volatile char cnt;
+volatile bit ol;
 
 void main(void) {
 
@@ -29,9 +29,9 @@ void main(void) {
     CMCON = 0x07;
 
     VRCON = 0x00;
-    
+
     TXSTA = 0x00;
-    
+
     RCSTA = 0x00;
 
     TRISA = 0x00;
@@ -41,14 +41,14 @@ void main(void) {
     T1CON = 0x00;
 
     CCP1CON = 0x04;
-    
+
     OPTION_REG = 0xc0;
-    
-    INTCON = 0x20;
+
+    INTCON = 0x10;
     PIE1 = 0x05;
-    
-   // PEIE = 1;
-   // GIE = 1;
+
+    // PEIE = 1;
+    // GIE = 1;
 
     LCD_Ini();
 
@@ -62,49 +62,78 @@ void main(void) {
 
     LCD_Write("Press Start");
 
-    
+
     while (1) {
 
 
         if (!BT) {
 
+
+            CCP1CONbits.CCP1M = 0b0101;
             CCP1IF = 0;
             CCP1IE = 1;
 
             TMR1IF = 0;
             TMR1IE = 1;
-            
-            
 
+            INTF = 0;
+            INTE = 1;
+
+            for(int i=0;i<3;i++){
+                temps[i]=0;
+                of[i]=0;
+            }
             cnt = 0;
+            ol = 0;
 
             LCD_Clear();
             LCD_Cursor(0, 0);
             LCD_Write("Ready");
 
             PEIE = 1;
-             GIE = 1;
-            
+            GIE = 1;
+
+
             while (cnt < 4) {
             }
 
-             PEIE = 0;
-             GIE = 0;
-             
+            PEIE = 0;
+            GIE = 0;
+
+            CCP1IF = 0;
+            CCP1IE = 0;
+
+            TMR1ON = 0;
+            TMR1IF = 0;
+            TMR1IE = 0;
+
+            INTF = 0;
+            INTE = 0;
+
+
             if (ol) {
 
-                durada[0] = T1FC * of[1] + temps[1];
-                durada[1] = T1FC * (of[2] - of[0])+(temps[2] - temps[0]);
+                durada[0] = T1FC * of[1] + 200 * temps[1];
+                durada[1] = T1FC * (of[2] - of[0]) + 200 * (temps[2] - temps[0]);
 
             } else {
 
-                durada[0] = T1FC * of[0] + temps[0];
-                durada[1] = T1FC * (of[2] - of[1])+(temps[2] - temps[1]);
+                durada[0] = T1FC * of[0] + 200 * temps[0];
+                durada[1] = T1FC * (of[2] - of[1]) + 200 * (temps[2] - temps[1]);
 
             }
 
+            LCD_Clear();
+
             LCD_Cursor(0, 0);
             LCD_WriteNum(durada[0]);
+
+
+
+            LCD_Cursor(0, 1);
+            LCD_WriteNum(durada[1]);
+
+
 
         }
 
@@ -123,6 +152,7 @@ void interrupt isr(void) {
         if (cnt == 0) {
             TMR1 = 0;
             CCPR1 = 0;
+            TMR1ON = 1;
             CCP1CONbits.CCP1M = 0b0100;
 
         } else if (cnt == 1) {
@@ -163,7 +193,7 @@ void interrupt isr(void) {
 
     }
 
-
+    return;
 }
 
 
